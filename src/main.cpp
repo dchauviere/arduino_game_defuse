@@ -6,6 +6,8 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
 // CONFIG
 #define KEYCODE "739C"
@@ -21,7 +23,10 @@ int dureeNoteFailed[] = {4,8,8,4,4,4,4,4 };
 int melodieSizeFailed = 7;
 
 #define KEY_PIN 13
-#define WIRE_PIN 12
+#define WIRE1_PIN 50
+#define WIRE2_PIN 51
+#define WIRE3_PIN 52
+#define WIRE4_PIN 53
 #define LED_PIN 3
 #define BUZZER_PIN 2
 
@@ -31,6 +36,7 @@ int melodieSizeFailed = 7;
 #define OLED_RESET    -1 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+LiquidCrystal_I2C lcd(0x27, 20, 4);
 
 int led_status;
 
@@ -49,6 +55,7 @@ bool end_of_game;
 
 void setup() {
   Serial.begin(9600);
+  Serial.println("Setup start !");
   end_of_game = false;
   led_status = LOW;
 
@@ -64,17 +71,25 @@ void setup() {
   // Clear the buffer
   display.clearDisplay();
 
+  //lcd.init();
+
   initKeypad();
   
   pinMode(LED_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(KEY_PIN, INPUT);
-  pinMode(WIRE_PIN, INPUT);
+  pinMode(WIRE1_PIN, INPUT);
+  pinMode(WIRE2_PIN, INPUT);
+  pinMode(WIRE3_PIN, INPUT);
+  pinMode(WIRE4_PIN, INPUT);
 
   defuse_status[DEFUSE_CODE] = false;
   defuse_status[DEFUSE_KEY] = false;
   defuse_status[DEFUSE_WIRE] = false;
   defuse_status[DEFUSE_PTM] = false;
+
+  Serial.println("Setup done !");
+
 }
 
 bool checkDefuseCode() {
@@ -99,7 +114,7 @@ bool checkDefuseKey() {
 }
 
 bool checkDefuseWire() {
-  if ( digitalRead(WIRE_PIN) == 0 ) {
+  if ( digitalRead(WIRE1_PIN) == 0 ) {
     return true;
   }
   return false;  
