@@ -123,6 +123,11 @@ bool checkDefuseWire() {
 bool checkDefusePTM() {
   int ptm_value = map(analogRead(A0), 0, 1023, 0, 255);
 
+  if ( ptm_value != 0 ) {
+    Serial.print("Potentiometer : ");
+    Serial.println(ptm_value);
+  } 
+  
   if ( ptm_value >= PTM_MIN && ptm_value <= PTM_MAX ) {
     return true;
   }
@@ -168,6 +173,9 @@ void blinkLed() {
 }
 
 void loop() {
+  int status_line_x;
+  int status_line_y;
+
   if ( end_of_game ) {
     return;
   }
@@ -187,6 +195,11 @@ void loop() {
       Serial.println("End of game : Success !");
       playSound(melodieSuccess, dureeNoteSuccess, melodieSizeSuccess);
       end_of_game = true;
+      display.clearDisplay();
+      display.setTextSize(8);
+      display.setCursor(10,10);
+      display.print("Gagné");
+      display.display();
       return;
     }
 
@@ -195,10 +208,35 @@ void loop() {
       Serial.println("End of game : Failed !");
       playSound(melodieFailed, dureeNoteFailed, melodieSizeFailed);
       end_of_game = true;
+      display.clearDisplay();
+      display.setTextSize(8);
+      display.setCursor(10,10);
+      display.print("Perdu");
+      display.display();
       return;
     }
 
     // OLED display current
+    display.clearDisplay();
+    display.setTextSize(6);
+    display.setTextColor(WHITE);
+    display.setCursor(10,10);
+    display.print(counterMillis/1000/60);
+    for(int i=0; i<4; i++) {
+      if (i<2) {
+        status_line_y = 20;
+        status_line_x = i*20+100;
+      } else {
+        status_line_y = 40;
+        status_line_x = (i-2)*20+100;
+      }
+      if ( defuse_status[i] ) {
+        display.drawCircle(status_line_x, status_line_y, 8, WHITE);
+      } else {
+        display.fillCircle(status_line_x, status_line_y, 8, WHITE);
+      }
+    }
+    display.display();
 
     previousMillis = currentMillis;
   }
