@@ -6,27 +6,29 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
+#include "indices.h"
 
 // CONFIG
-#define KEYCODE "739C"
-#define PTM_MIN 30
-#define PTM_MAX 40
+#define KEYCODE "572C"
+#define PTM_MIN 394
+#define PTM_MAX 394
 #define START_COUNTER_MILLIS 60*60*1000
 
-int melodieSuccess[] = {262, 196, 196, 220, 196, 247, 262};
-int dureeNoteSuccess[] = {4,8,8,4,4,4,4,4 };
-int melodieSizeSuccess = 7;
-int melodieFailed[] = {262, 196, 196, 220, 196, 247, 262};
-int dureeNoteFailed[] = {4,8,8,4,4,4,4,4 };
-int melodieSizeFailed = 7;
+int melodieSuccess[] = {330,392,659,523,587,784};
+int dureeNoteSuccess[] = {150,150,150,150,150,150 };
+int melodieSizeSuccess = 6;
+int melodieFailed[] = {622,587,554};
+int dureeNoteFailed[] = {300,300,300 };
+int melodieSizeFailed = 3;
+int melodieError[] = {622,587,554};
+int dureeNoteError[] = {300,300,300 };
+int melodieSizeError = 7;
 
 #define KEY_PIN 13
-#define WIRE1_PIN 50
-#define WIRE2_PIN 51
-#define WIRE3_PIN 52
-#define WIRE4_PIN 53
+#define WIRE1_PIN 46 // Marron
+#define WIRE2_PIN 47 // Orange
+#define WIRE3_PIN 48 // Vert
+#define WIRE4_PIN 53 // Bleu
 #define LED_PIN 3
 #define BUZZER_PIN 2
 
@@ -36,7 +38,6 @@ int melodieSizeFailed = 7;
 #define OLED_RESET    -1 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-LiquidCrystal_I2C lcd(0x27, 20, 4);
 
 int led_status;
 
@@ -56,6 +57,9 @@ bool end_of_game;
 void setup() {
   Serial.begin(9600);
   Serial.println("Setup start !");
+
+  SPI.begin(); // Init SPI bus
+
   end_of_game = false;
   led_status = LOW;
 
@@ -71,9 +75,9 @@ void setup() {
   // Clear the buffer
   display.clearDisplay();
 
-  //lcd.init();
-
   initKeypad();
+
+  indices_init();
   
   pinMode(LED_PIN, OUTPUT);
   pinMode(BUZZER_PIN, OUTPUT);
@@ -88,8 +92,18 @@ void setup() {
   defuse_status[DEFUSE_WIRE] = false;
   defuse_status[DEFUSE_PTM] = false;
 
+
   Serial.println("Setup done !");
 
+}
+
+void playSound(int *melodie, int *dureeNote, int size) {
+  int i;
+  for (i = 0; i < size; i++){
+    tone(BUZZER_PIN, melodie[i]);
+    delay(dureeNote[i]);
+    noTone(BUZZER_PIN);
+  }
 }
 
 bool checkDefuseCode() {
@@ -101,6 +115,10 @@ bool checkDefuseCode() {
     Serial.println(keyCodeValue);
     if(strcmp(keyCodeValue, KEYCODE) == 0) {
       return true;
+    }else{
+      playSound(melodieError, dureeNoteError, melodieSizeError);
+      Serial.println("decrement counter");
+      counterMillis -= (long) 60*5000;
     }
   }
   return false;
@@ -123,24 +141,15 @@ bool checkDefuseWire() {
 bool checkDefusePTM() {
   int ptm_value = map(analogRead(A0), 0, 1023, 0, 255);
 
-  if ( ptm_value != 0 ) {
+  if ( ptm_value > 10 ) {
     Serial.print("Potentiometer : ");
     Serial.println(ptm_value);
   } 
-  
+
   if ( ptm_value >= PTM_MIN && ptm_value <= PTM_MAX ) {
     return true;
   }
   return false;
-}
-
-void playSound(int *melodie, int *dureeNote, int size) {
-  int i;
-  for (i = 0; i < size; i++){
-    tone(9, melodie[i], 1000/dureeNote[i]);
-    delay(1300/dureeNote[i]);
-    noTone(9);
-  }
 }
 
 bool checkDefuse() {
@@ -193,10 +202,11 @@ void loop() {
     if (checkDefuse()) {
       // OLED display success game
       Serial.println("End of game : Success !");
+      digitalWrite(LED_PIN, LOW);
       playSound(melodieSuccess, dureeNoteSuccess, melodieSizeSuccess);
       end_of_game = true;
       display.clearDisplay();
-      display.setTextSize(8);
+      display.setTextSize(4);
       display.setCursor(10,10);
       display.print("Gagné");
       display.display();
@@ -206,10 +216,11 @@ void loop() {
     if (counterMillis <= 0) {
       // OLED display failed game
       Serial.println("End of game : Failed !");
+      digitalWrite(LED_PIN, HIGH);
       playSound(melodieFailed, dureeNoteFailed, melodieSizeFailed);
       end_of_game = true;
       display.clearDisplay();
-      display.setTextSize(8);
+      display.setTextSize(4);
       display.setCursor(10,10);
       display.print("Perdu");
       display.display();
@@ -261,4 +272,5 @@ void loop() {
     defuse_status[DEFUSE_PTM] = checkDefusePTM();
   }
 
+  indices();
 }
