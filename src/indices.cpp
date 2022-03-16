@@ -22,21 +22,21 @@ byte badges[4][4] = {
 };
 
 bool indices_state[4] = {false, false, false, false};
-char photos[4][3] = {
-  {'A', 'B', ' '},
-  {'C', 'D', ' '},
-  {'E', 'F', ' '},
-  {'G', 'H', 'I'}
+char photos[4][2] = {
+  {'A', 'B'},
+  {'C', 'D'},
+  {'E', 'F'},
+  {'G', 'H'}
 };
 
-int localisation[4][3] = {
-  {22,28,0},
-  {32,38,0},
-  {34,24,0},
-  {30,36,26}
+int localisation[4][2] = {
+  {26,28},
+  {32,38},
+  {34,24},
+  {30,36}
 };
 
-String indices_position[4] = {"A0", "B0", "C0", "D0"};
+String indices_position[4] = {"R4", "W2", "M7", "W15"};
 
 unsigned long indicesMillis   = 0;
 unsigned long indicesCurrentMillis;
@@ -126,14 +126,14 @@ void indices() {
 
   int loc_result = 0;
   
-  for (int loc=0; loc<3; loc++) {
+  for (int loc=0; loc<2; loc++) {
     if (localisation[badge-1][loc] == 0) {
       loc_result+=1;
     }else{
       loc_result+= digitalRead(localisation[badge-1][loc]);
     }
   }
-  if (loc_result == 3) {
+  if (loc_result == 2) {
     indices_state[badge-1]=true;
   }
 
@@ -144,7 +144,7 @@ void indices() {
 	  lcd.print("l'indice se trouve");
     lcd.setCursor(0,1);
 	  lcd.print("dans la case : ");
-    lcd.setCursor(15,2);
+    lcd.setCursor(9,2);
 	  lcd.print(indices_position[badge-1]);
   }else{
     lcd.clear();
@@ -157,8 +157,6 @@ void indices() {
 	  lcd.print(photos[badge-1][0]);
     lcd.setCursor(2,2);
 	  lcd.print(photos[badge-1][1]);
-    lcd.setCursor(4,2);
-	  lcd.print(photos[badge-1][2]);
   }
   indicesPreviousMillis=indicesCurrentMillis;
 }

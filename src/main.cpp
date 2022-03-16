@@ -10,8 +10,8 @@
 
 // CONFIG
 #define KEYCODE "572C"
-#define PTM_MIN 394
-#define PTM_MAX 394
+#define PTM_MIN 374 // value = 394
+#define PTM_MAX 414
 #define START_COUNTER_MILLIS 60*60*1000
 
 int melodieSuccess[] = {330,392,659,523,587,784};
@@ -20,17 +20,25 @@ int melodieSizeSuccess = 6;
 int melodieFailed[] = {622,587,554};
 int dureeNoteFailed[] = {300,300,300 };
 int melodieSizeFailed = 3;
-int melodieError[] = {622,587,554};
-int dureeNoteError[] = {300,300,300 };
-int melodieSizeError = 7;
+int melodieError[] = {100};
+int dureeNoteError[] = {300};
+int melodieSizeError = 1;
+int melodieOk[] = {600};
+int dureeNoteOk[] = {150 };
+int melodieSizeOk = 1;
+
 
 #define KEY_PIN 13
 #define WIRE1_PIN 46 // Marron
 #define WIRE2_PIN 47 // Orange
 #define WIRE3_PIN 48 // Vert
-#define WIRE4_PIN 53 // Bleu
+#define WIRE4_PIN 45 // Bleu
 #define LED_PIN 3
 #define BUZZER_PIN 2
+#define BUTTON_PIN 12
+
+int wires_pin[4]={WIRE1_PIN,WIRE2_PIN,WIRE3_PIN,WIRE4_PIN};
+bool badwire[4]={true,true,true,false};
 
 // OLED
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -114,6 +122,7 @@ bool checkDefuseCode() {
     Serial.print("Code entered : ");
     Serial.println(keyCodeValue);
     if(strcmp(keyCodeValue, KEYCODE) == 0) {
+      playSound(melodieOk, dureeNoteOk, melodieSizeOk);
       return true;
     }else{
       playSound(melodieError, dureeNoteError, melodieSizeError);
@@ -126,28 +135,44 @@ bool checkDefuseCode() {
 
 bool checkDefuseKey() {
   if ( digitalRead(KEY_PIN) == 1 ) {
+    playSound(melodieOk, dureeNoteOk, melodieSizeOk);
     return true;
   }
   return false;
 }
 
 bool checkDefuseWire() {
-  if ( digitalRead(WIRE1_PIN) == 0 ) {
-    return true;
+  for (int w=0; w<4; w++) {
+    int data = digitalRead(wires_pin[w]);
+    if (data==0 && w==3) {
+      playSound(melodieOk, dureeNoteOk, melodieSizeOk);
+      return true;
+    }
+    if (data==0 && badwire[w]) {
+      badwire[w]=false;
+      playSound(melodieError, dureeNoteError, melodieSizeError);
+      Serial.println("decrement counter");
+      counterMillis -= (long) 60*5000;
+    }
   }
   return false;  
 }
 
 bool checkDefusePTM() {
-  int ptm_value = map(analogRead(A0), 0, 1023, 0, 255);
+  int ptm_value = analogRead(A0);
 
-  if ( ptm_value > 10 ) {
-    Serial.print("Potentiometer : ");
-    Serial.println(ptm_value);
-  } 
+  if (digitalRead(BUTTON_PIN)==0) return false; 
 
+  Serial.print("Potentiometer : ");
+  Serial.println(ptm_value);
+  
   if ( ptm_value >= PTM_MIN && ptm_value <= PTM_MAX ) {
+    playSound(melodieOk, dureeNoteOk, melodieSizeOk);
     return true;
+  } else {
+    playSound(melodieError, dureeNoteError, melodieSizeError);
+    Serial.println("decrement counter");
+    counterMillis -= (long) 60*5000;
   }
   return false;
 }
@@ -206,9 +231,9 @@ void loop() {
       playSound(melodieSuccess, dureeNoteSuccess, melodieSizeSuccess);
       end_of_game = true;
       display.clearDisplay();
-      display.setTextSize(4);
+      display.setTextSize(3);
       display.setCursor(10,10);
-      display.print("Gagné");
+      display.print("Gagne");
       display.display();
       return;
     }
@@ -220,7 +245,7 @@ void loop() {
       playSound(melodieFailed, dureeNoteFailed, melodieSizeFailed);
       end_of_game = true;
       display.clearDisplay();
-      display.setTextSize(4);
+      display.setTextSize(3);
       display.setCursor(10,10);
       display.print("Perdu");
       display.display();
